@@ -1,3 +1,10 @@
+/*! Copyright (c) 2013 Warren Wilson
+ * Licensed under the MIT License.
+ *
+ * Version: 0.2
+ * 
+ * Requires: 1.2.2+
+ */
 (function($) {
 
     var methods = {
@@ -46,6 +53,29 @@
                 	// set the opacity of the first item to 100
                 	$(options.plate, form).first().css({ 'filter' : 'alpha(opacity=' + options.current_op + ')', 'opacity' : (options.current_op/100) });
               	}
+              	if (options.type == 'xfade') {
+                	// set the current op to 100 opacity
+                	options.current_op = 100;
+                	// if the slideshow is fader, hide all but the first element
+                	var i = 0;
+                	$(options.plate, form).each(function() {
+                		if (i > 0) $(this).css({ 'filter' : 'alpha(opacity=' + 0 + ')', 'opacity' : 0 }); i++;
+                	});
+                	$(options.list, form).css('position' ,'relative');
+                	
+                	$(options.plate, form).css( { 'position':'absolute', 'top' : 0, 'left' : 0 });
+                	
+                	// set the opacity of the first item to 100
+                	$(options.plate, form).first().css({ 'filter' : 'alpha(opacity=' + options.current_op + ')', 'opacity' : (options.current_op/100) });
+                	
+                	if (options.total_slides > 1) {
+	                	// set the opacity of the next slide to 0
+	                	var panel = $(options.plate, form).first();
+	                	var nextSlide = panel.next();
+                		nextSlide.show().css({ 'filter' : 'alpha(opacity=' + 0 + ')', 'opacity' : 0 });
+                	}
+              	}
+              	
               	// add the active class to first item
               	$(options.plate, form).first().addClass(options.active).show();
               	
@@ -116,7 +146,6 @@
         _saveOptions: function(form, options) {
         	var userOptions = $.extend({
         				total_slides: 0,
-                currentSRI: 1,
                 plate: 'li.slide-item',
                 list: 'ul.slide-list',
                 container: '.slider',
@@ -240,10 +269,45 @@
         				options.current_op = 0;
         			}
         			$(options.plate + '.' + options.active, form).css({ 'filter' : 'alpha(opacity=' + options.current_op + ')', 'opacity' : (options.current_op/100) });
+        			var nextSlide = null;
+        			if (options.type == 'xfade') {
+        				if (options.slide_to == 'next') {
+	        				if ($(options.plate + '.' + options.active, form).is(':last-child')) {
+			        			nextSlide = $(options.plate, form).first();
+			        		} else {
+			        			nextSlide = $(options.plate + '.' + options.active, form).next();
+			        		}
+			        	} else {
+			        		if ($(options.plate + '.' + options.active, form).is(':first-child')) {
+			        			nextSlide = $(options.plate, form).last();
+			        		} else {
+			        			nextSlide = $(options.plate + '.' + options.active, form).prev();
+			        		}
+			        	}
+		        		nextSlide.css({ 'filter' : 'alpha(opacity=' + (100 - options.current_op) + ')', 'opacity' : (1 - (options.current_op/100)) });
+		        		
+        			}
         			
         			if (options.current_op == 0) {
-        				methods.loadNewPlate.apply(form);
-        				options.sh_toID = window.setTimeout(function() { form.slideShow('fadeMaskDown', form); }, options.fadelength);
+        				if (options.type == 'fade') {
+        					methods.loadNewPlate.apply(form);
+        					options.sh_toID = window.setTimeout(function() { form.slideShow('fadeMaskDown', form); }, options.fadelength);
+        				} else {
+        					if (options.type == 'xfade') {
+        						if (options.slide_to == 'next') {
+        							options.current_slide++;
+        						} else {
+        							options.current_slide--;
+        							options.slide_to = 'next';
+        						}
+        						options.current_op = 100;
+        						$(options.plate + '.' + options.active, form).removeClass( options.active );
+        						nextSlide.addClass( options.active );
+        						options.sh_toID = window.setTimeout(function() { form.slideShow('startShow', form); }, options.pauseLength);
+        						if (!options.hideicons)
+      								methods.swapSlideIcon.apply(form);
+        					}
+        				}
         			} else {
         				options.sh_toID = window.setTimeout(function() { form.slideShow('fadeMaskUp', form); }, options.fadelength);
         			}
@@ -273,7 +337,6 @@
         	var form = this;
         	var options = form.data('ehshw');
         	
-    			options.current_slide++;
     			if (options.current_slide > options.total_slides)
     				options.current_slide = 1;
     			
@@ -411,8 +474,13 @@
 	        		
 	        	} else {
 	        		options.current_op = 100;
-	        		$(options.plate + '.' + options.active, form).hide().css({ 'filter' : 'alpha(opacity=100)', 'opacity' : 1 }).removeClass( options.active );
-	        		nextSlide.addClass( options.active ).css({ 'filter' : 'alpha(opacity=100)', 'opacity' : 1 }).show();
+	        		if (options.type == 'xfade') {
+	        			$(options.plate, form).css({ 'filter' : 'alpha(opacity=0)', 'opacity' : 0 }).removeClass( options.active );
+		        		nextSlide.addClass( options.active ).css({ 'filter' : 'alpha(opacity=100)', 'opacity' : 1 });
+	        		} else {
+		        		$(options.plate + '.' + options.active, form).hide().css({ 'filter' : 'alpha(opacity=100)', 'opacity' : 1 }).removeClass( options.active );
+		        		nextSlide.addClass( options.active ).css({ 'filter' : 'alpha(opacity=100)', 'opacity' : 1 }).show();
+		        	}
 	        		options.current_slide = boxnum;
 	        		if (!options.hideicons)
       					methods.swapSlideIcon.apply(form);
@@ -469,8 +537,13 @@
 	        		
 	        	} else {
 	        		options.current_op = 100;
-	        		$(options.plate + '.' + options.active, form).hide().css({ 'filter' : 'alpha(opacity=100)', 'opacity' : 1 }).removeClass( options.active );
-	        		nextSlide.addClass( options.active ).css({ 'filter' : 'alpha(opacity=100)', 'opacity' : 1 }).show();
+	        		if (options.type == 'xfade') {
+	        			$(options.plate, form).css({ 'filter' : 'alpha(opacity=0)', 'opacity' : 0 }).removeClass( options.active );
+		        		nextSlide.addClass( options.active ).css({ 'filter' : 'alpha(opacity=100)', 'opacity' : 1 });
+	        		} else {
+		        		$(options.plate + '.' + options.active, form).hide().css({ 'filter' : 'alpha(opacity=100)', 'opacity' : 1 }).removeClass( options.active );
+		        		nextSlide.addClass( options.active ).css({ 'filter' : 'alpha(opacity=100)', 'opacity' : 1 }).show();
+		        	}
 	        		options.current_slide = boxnum;
 	        		if (!options.hideicons)
       					methods.swapSlideIcon.apply(form);
@@ -553,6 +626,7 @@
             	return methods.startShow.apply(form);
         } else {
             $.error('Method ' + method + ' does not exist in jQuery.slideShow');
+            return false;
         }
     };
     
