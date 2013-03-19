@@ -1,7 +1,7 @@
 /*! Copyright (c) 2013 Warren Wilson
  * Licensed under the MIT License.
  *
- * Version: 0.2
+ * Version: 0.3
  * 
  * Requires: 1.2.2+
  */
@@ -41,6 +41,15 @@
                 	$(options.plate, form).each(function() {
                 		$(this).width( options.width ).css({ 'float' : 'left', 'overflow' : 'hidden' }); i++;
                 	});
+                	if (options.total_slides > 1) {
+                		if (options.direction == 'right') {
+                			var panel = $(options.plate, form).first();
+                			panel.addClass(options.active).show();
+                			var nextSlide = panel.next();
+                			nextSlide.css('margin-left' , 0 - options.width ).prependTo($(options.list, form));
+                			options.current_op = 0 - options.width;
+                		}
+                	}
                 }
                 if (options.type == 'fade') {
                 	// set the current op to 100 opacity
@@ -75,9 +84,11 @@
                 		nextSlide.show().css({ 'filter' : 'alpha(opacity=' + 0 + ')', 'opacity' : 0 });
                 	}
               	}
-              	
-              	// add the active class to first item
-              	$(options.plate, form).first().addClass(options.active).show();
+              	if (options.type == 'slide' && options.direction == 'right') {
+              	} else {
+	              	// add the active class to first item
+	              	$(options.plate, form).first().addClass(options.active).show();
+	              }
               	
               	
               	if (options.total_slides > 1) {
@@ -231,10 +242,41 @@
 	      						options.slide_to = 'next';
 	      						options.current_op = 0;
 	      						$(options.plate + '.' + options.active, form).css('margin-left', options.current_op);
+	      						
+	      						if (!options.isstatic)
+	      							options.sh_toID = window.setTimeout(function() { form.slideShow('startShow', form); }, options.pauseLength);
+	      						if (!options.hideicons)
+      								methods.swapSlideIcon.apply(form);
+	      					} else {
+	      						$(options.plate + '.' + options.active, form).css('margin-left', options.current_op);
+	      						options.sh_toID = window.setTimeout(function() { form.slideShow('animMaskSlide', form); }, options.fadelength);
+	      					}
+	      				}
+      				} else if (options.direction == 'right') {
+      					if (options.slide_to == 'next') {
+      						options.current_op += options.steplength;
+	      					if (options.current_op >= 0) {
+	      						$(options.plate, form).first().css('margin-left', '');
+	      						methods.movePlateToStart.apply(form);
+	      						options.current_op = (0 - options.width);
 	      						if (!options.isstatic)
 	      							options.sh_toID = window.setTimeout(function() { form.slideShow('startShow', form); }, options.pauseLength);
 	      					} else {
-	      						$(options.plate + '.' + options.active, form).css('margin-left', options.current_op);
+	      						$(options.plate, form).first().css('margin-left', options.current_op);
+	      						options.sh_toID = window.setTimeout(function() { form.slideShow('animMaskSlide', form); }, options.fadelength);
+	      					}
+	      				} else {
+	      					options.current_op -= options.steplength;
+	      					if (options.current_op <= (0 - options.width )) {
+	      						options.slide_to = 'next';
+	      						options.current_op = 0 - options.width;
+	      						$(options.plate, form).first().css('margin-left', options.current_op);
+	      						if (!options.isstatic)
+	      							options.sh_toID = window.setTimeout(function() { form.slideShow('startShow', form); }, options.pauseLength);
+	      						if (!options.hideicons)
+      								methods.swapSlideIcon.apply(form);
+	      					} else {
+	      						$(options.plate, form).first().css('margin-left', options.current_op);
 	      						options.sh_toID = window.setTimeout(function() { form.slideShow('animMaskSlide', form); }, options.fadelength);
 	      					}
 	      				}
@@ -252,8 +294,25 @@
       			
       			$(options.plate + '.' + options.active, form).removeClass( options.active ).css('margin-left' , 0).hide().appendTo($(options.list, form));
       			
-      			$(options.plate, form).first().addClass('active').css('margin-left' , 0);
+      			$(options.plate, form).first().addClass(options.active).css('margin-left' , 0);
       			$(options.plate, form).last().show();
+
+      			if (!options.hideicons)
+      				methods.swapSlideIcon.apply(form);
+      		}
+        },
+        movePlateToStart: function() {
+        	var form = this;
+        	var options = form.data('ehshw');
+      		if ($(options.plate + '.' + options.active, form).length) {
+      			options.current_slide++;
+      			if (options.current_slide > options.total_slides)
+      				options.current_slide = 1;
+      			
+      			var panel = $(options.plate + '.' + options.active, form);
+      			panel.css('margin-left', '').removeClass( options.active );
+      			$(options.plate, form).first().addClass( options.active );
+      			$(options.plate, form).last().css('margin-left' , (0 - options.width ) ).prependTo($(options.list, form));
 
       			if (!options.hideicons)
       				methods.swapSlideIcon.apply(form);
@@ -382,20 +441,11 @@
         	window.clearTimeout(options.sh_toID);
         	if ($(options.plate + '.' + options.active, form).length) {
 	        	options.slide_to = 'next';
+	    			options.current_slide++;
+	    			if (options.current_slide > options.total_slides)
+	    				options.current_slide = 1;
 	        	if (options.type == 'slide') {
-		    			options.current_slide++;
-		    			if (options.current_slide > options.total_slides)
-		    				options.current_slide = 1;
-		    			
-	        		if (options.direction == 'right') {
-	        			// move the last slide in the list to the first
-	        			$(options.plate, form).last().hide().css('margin-left' , (0 - $(options.plate + '.' + options.active, form).width()) ).prependTo($(options.list, form));
-	        			$(options.plate + '.' + options.active, form).css('margin-left', 0).removeClass( options.active );
-	        			$(options.plate, form).first().show().addClass( options.active );
-	        		}
 	        		options.sh_toID = window.setTimeout(function() { form.slideShow('animMaskSlide', form); }, options.fadelength);
-	      			if (!options.hideicons)
-	      				methods.swapSlideIcon.apply(form);
 	        	} else {
 	        		options.sh_toID = window.setTimeout(function() { form.slideShow('fadeMaskUp', form); }, options.fadelength);
 	        	}
@@ -418,11 +468,15 @@
 	        			$(options.plate, form).last().hide().css('margin-left' , (0 - $(options.plate + '.' + options.active, form).width()) ).prependTo($(options.list, form));
 	        			$(options.plate + '.' + options.active, form).css('margin-left', 0).removeClass( options.active );
 	        			$(options.plate, form).first().show().addClass( options.active );
-	        			options.current_op = (0 - $(options.plate + '.' + options.active, form).width());
-	        		}
+	        			options.current_op = (0 - options.width);
+	        		} else if (options.direction == 'right') {
+	        			var panel = $(options.plate + '.' + options.active, form);
+	        			panel.removeClass( options.active ).css('margin-left' , '');
+	        			$(options.plate, form).first().css('margin-left' , '').appendTo( $(options.list, form) );
+	        			panel.next().addClass( options.active ).css('margin-left' , '');
+		      			options.current_op = 0;
+		      		}
 	        		options.sh_toID = window.setTimeout(function() { form.slideShow('animMaskSlide', form); }, options.fadelength);
-	      			if (!options.hideicons)
-	      				methods.swapSlideIcon.apply(form);
 	        	} else {
         			options.sh_toID = window.setTimeout(function() { form.slideShow('fadeMaskUp', form); }, options.fadelength);
         		}
@@ -444,11 +498,12 @@
         			}
         		}
         	});
-        	if ($.isNull(nextSlide)) return false;
+        	if (nextSlide === null) return false;
         	
         	if ($(options.plate + '.' + options.active, form).length) {
 	        	if (options.type == 'slide') {
 	        		if (options.direction == 'left') {
+	        			options.current_op = 0;
 		        		if (!nextSlide.is(':last-child')) {
 		        			var cIndex = $(options.plate, form).index( nextSlide );
 	        				for (var i = cIndex+1; i < $(options.plate, form).length; i++) {
@@ -457,17 +512,24 @@
 		        		}
 		        		$(options.plate + '.' + options.active, form).css('margin-left', 0).removeClass( options.active );
       					nextSlide.css('margin-left', 0).addClass( options.active ).prependTo($(options.list, form));
-	        		} else {
-		        		if (!nextSlide.is(':first-child')) {
-		        			var cIndex = $(options.plate, form).index( nextSlide );
-	        				for (var i = cIndex-1; i > 0; i--) {
-	        					$(options.plate, form).first().css('margin-left', 0).removeClass( options.active ).appendTo($(options.list, form));
-	        				}
+	        		} else if (options.direction == 'right') {
+	        			options.current_op = 0 - options.width;
+	        			$(options.plate, form).css('margin-left', '').removeClass( options.active );
+	        			
+	        			if (nextSlide.is(':first-child')) {
+	        				nextSlide.addClass(options.active);
+	        				$(options.plate, form).last().css('margin-left', options.current_op).prependTo($(options.list, form));
+	        			} else {
+		        			if (!nextSlide.is(':last-child')) {
+			        			var cIndex = $(options.plate, form).index( nextSlide );
+		        				for (var i = $(options.plate, form).length; i > cIndex; i--) {
+		        					$(options.plate, form).last().prependTo($(options.list, form));
+		        				}
+		        			}
+		        			$(options.plate, form).last().addClass(options.active).prependTo($(options.list, form)); // the new slide should now be the last item
+		        			$(options.plate, form).last().css('margin-left', options.current_op).prependTo($(options.list, form));
 		        		}
-		        		$(options.plate + '.' + options.active, form).css('margin-left', 0).removeClass( options.active );
-		        		nextSlide.css('margin-left', 0).addClass(options.active).appendTo($(options.list, form));
 	        		}
-	        		options.current_op = 0;
 	        		options.current_slide = boxnum;
 	        		if (!options.hideicons)
       					methods.swapSlideIcon.apply(form);
@@ -507,7 +569,7 @@
         			}
         		}
         	});
-        	if ($.isNull(nextSlide)) return false;
+        	if (nextSlide === null) return false;
         	
         	if ($(options.plate + '.' + options.active, form).length) {
 	        	if (options.type == 'slide') {
@@ -520,17 +582,26 @@
 		        		}
 		        		$(options.plate + '.' + options.active, form).css('margin-left', 0).removeClass( options.active );
       					nextSlide.css('margin-left', 0).addClass( options.active ).prependTo($(options.list, form));
-	        		} else {
-		        		if (!nextSlide.is(':first-child')) {
-		        			var cIndex = $(options.plate, form).index( nextSlide );
-	        				for (var i = cIndex-1; i > 0; i--) {
-	        					$(options.plate, form).first().css('margin-left', 0).removeClass( options.active ).appendTo($(options.list, form));
-	        				}
+      					options.current_op = 0;
+	        		} else if (options.direction == 'right') {
+	        			options.current_op = 0 - options.width;
+	        			$(options.plate, form).css('margin-left', '').removeClass( options.active );
+	        			
+	        			if (nextSlide.is(':first-child')) {
+	        				nextSlide.addClass(options.active);
+	        				$(options.plate, form).last().css('margin-left', options.current_op).prependTo($(options.list, form));
+	        			} else {
+		        			if (!nextSlide.is(':last-child')) {
+			        			var cIndex = $(options.plate, form).index( nextSlide );
+		        				for (var i = $(options.plate, form).length; i > cIndex; i--) {
+		        					$(options.plate, form).last().prependTo($(options.list, form));
+		        				}
+		        			}
+		        			$(options.plate, form).last().addClass(options.active).prependTo($(options.list, form)); // the new slide should now be the last item
+		        			$(options.plate, form).last().css('margin-left', options.current_op).prependTo($(options.list, form));
 		        		}
-		        		$(options.plate + '.' + options.active, form).css('margin-left', 0).removeClass( options.active );
-		        		nextSlide.css('margin-left', 0).addClass(options.active).appendTo($(options.list, form));
 	        		}
-	        		options.current_op = 0;
+	        		
 	        		options.current_slide = boxnum;
 	        		if (!options.hideicons)
       					methods.swapSlideIcon.apply(form);
